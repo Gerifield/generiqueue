@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	p := pubsub.New()
+	p := pubsub.New[[]byte]()
 
 	msgCh := p.Subscribe("topic1")
 
