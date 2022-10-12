@@ -1,2 +1,2 @@
 # generiqueue
-Mini experimental in-memory queue with generics
+Mini experimental in-memory pubsub with generics
