@@ -6,7 +6,7 @@ import (
 )
 
 func TestPublishDropMessage(t *testing.T) {
-	p := New()
+	p := New[[]byte]()
 
 	p.Publish("non-existing", []byte("payload"))
 }
@@ -14,7 +14,7 @@ func TestPublishDropMessage(t *testing.T) {
 func TestPubSubOK(t *testing.T) {
 	t.Parallel()
 
-	p := New()
+	p := New[[]byte]()
 
 	testPayload := "payload"
 	testTopic := "topic1"
@@ -40,7 +40,7 @@ func TestPubSubOK(t *testing.T) {
 func TestPubSubMultiSubOK(t *testing.T) {
 	t.Parallel()
 
-	p := New()
+	p := New[[]byte]()
 
 	testPayload := "payload"
 	testTopic := "topic1"

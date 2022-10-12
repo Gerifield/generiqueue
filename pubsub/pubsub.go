@@ -5,20 +5,20 @@ import (
 )
 
 // PubSub .
-type PubSub struct {
+type PubSub[T any] struct {
 	incomingLock sync.Mutex
-	topics       map[string][]chan []byte
+	topics       map[string][]chan T
 }
 
 // New .
-func New() *PubSub {
-	return &PubSub{
-		topics: make(map[string][]chan []byte),
+func New[T any]() *PubSub[T] {
+	return &PubSub[T]{
+		topics: make(map[string][]chan T),
 	}
 }
 
 // Publish .
-func (ps *PubSub) Publish(topic string, payload []byte) {
+func (ps *PubSub[T]) Publish(topic string, payload T) {
 	ps.incomingLock.Lock()
 	defer ps.incomingLock.Unlock()
 
@@ -33,7 +33,7 @@ func (ps *PubSub) Publish(topic string, payload []byte) {
 }
 
 // Finish .
-func (ps *PubSub) Finish(topic string) {
+func (ps *PubSub[T]) Finish(topic string) {
 	ps.incomingLock.Lock()
 	defer ps.incomingLock.Unlock()
 
@@ -45,11 +45,11 @@ func (ps *PubSub) Finish(topic string) {
 }
 
 // Subscribe .
-func (ps *PubSub) Subscribe(topic string) <-chan []byte {
+func (ps *PubSub[T]) Subscribe(topic string) <-chan T {
 	ps.incomingLock.Lock()
 	defer ps.incomingLock.Unlock()
 
-	retCh := make(chan []byte)
+	retCh := make(chan T)
 
 	_, ok := ps.topics[topic]
 	if ok {
@@ -58,7 +58,7 @@ func (ps *PubSub) Subscribe(topic string) <-chan []byte {
 		return retCh
 	}
 
-	ps.topics[topic] = []chan []byte{retCh}
+	ps.topics[topic] = []chan T{retCh}
 
 	return retCh
 }
