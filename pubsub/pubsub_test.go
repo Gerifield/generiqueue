@@ -3,6 +3,8 @@ package pubsub
 import (
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestPublishDropMessage(t *testing.T) {
@@ -24,9 +26,7 @@ func TestPubSubOK(t *testing.T) {
 
 	go func() {
 		msg := <-testCh
-		if string(msg) != testPayload {
-			t.Error("missmatch")
-		}
+		assert.Equal(t, testPayload, string(msg))
 
 		close(closeCh)
 	}()
@@ -53,18 +53,14 @@ func TestPubSubMultiSubOK(t *testing.T) {
 
 	go func() {
 		msg := <-testCh
-		if string(msg) != testPayload {
-			t.Error("missmatch")
-		}
+		assert.Equal(t, testPayload, string(msg))
 
 		close(closeCh)
 	}()
 
 	go func() {
 		msg := <-test2Ch
-		if string(msg) != testPayload {
-			t.Error("missmatch")
-		}
+		assert.Equal(t, testPayload, string(msg))
 
 		close(close2Ch)
 	}()
@@ -74,4 +70,25 @@ func TestPubSubMultiSubOK(t *testing.T) {
 
 	<-closeCh
 	<-close2Ch
+}
+
+func TestFinishCleanup(t *testing.T) {
+	t.Parallel()
+
+	p := New[[]byte]()
+
+	testTopic := "topic1"
+	testTopic2 := "topic2"
+
+	_ = p.Subscribe(testTopic)
+	_ = p.Subscribe(testTopic)
+	_ = p.Subscribe(testTopic2)
+
+	assert.Equal(t, 2, len(p.topics))
+	assert.Equal(t, 2, len(p.topics[testTopic]))
+
+	p.Finish(testTopic)
+	assert.Equal(t, 1, len(p.topics))
+	_, ok := p.topics[testTopic]
+	assert.False(t, ok)
 }

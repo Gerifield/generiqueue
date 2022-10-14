@@ -42,6 +42,8 @@ func (ps *PubSub[T]) Finish(topic string) {
 			close(ch)
 		}
 	}
+
+	delete(ps.topics, topic)
 }
 
 // Subscribe .
