@@ -1,6 +1,7 @@
 package pubsub
 
 import (
+	"sync"
 	"testing"
 	"time"
 
@@ -91,4 +92,84 @@ func TestFinishCleanup(t *testing.T) {
 	assert.Equal(t, 1, len(p.topics))
 	_, ok := p.topics[testTopic]
 	assert.False(t, ok)
+}
+
+func TestPubSubBufferedOK(t *testing.T) {
+	t.Parallel()
+
+	p := New[[]byte]()
+
+	testPayload := "payload"
+	testTopic := "topic1"
+
+	testCh := p.SubscribeBuffered(testTopic, 4)
+	closeCh := make(chan struct{})
+
+	go func() {
+		cnt := 0
+		for msg := range testCh {
+			assert.Equal(t, testPayload, string(msg))
+			cnt++
+		}
+
+		assert.Equal(t, 4, cnt)
+		close(closeCh)
+	}()
+
+	time.Sleep(1 * time.Millisecond)
+	// Not the best way to test, but without the buffer some of these would be dropped
+	p.Publish(testTopic, []byte(testPayload))
+	p.Publish(testTopic, []byte(testPayload))
+	p.Publish(testTopic, []byte(testPayload))
+	p.Publish(testTopic, []byte(testPayload))
+	p.Finish(testTopic)
+
+	<-closeCh
+}
+
+func TestPubSubCombined(t *testing.T) {
+	t.Parallel()
+
+	p := New[[]byte]()
+
+	testPayload := "payload"
+	testTopic := "topic1"
+
+	var wg sync.WaitGroup
+	testCh1 := p.SubscribeBuffered(testTopic, 4) // Buffered
+	testCh2 := p.Subscribe(testTopic)            // Non buffered
+
+	go func() {
+		wg.Add(1)
+		cnt := 0
+		for msg := range testCh1 {
+			assert.Equal(t, testPayload, string(msg))
+			cnt++
+		}
+
+		assert.Equal(t, 4, cnt)
+		wg.Done()
+	}()
+
+	go func() {
+		wg.Add(1)
+		cnt := 0
+		for msg := range testCh2 {
+			assert.Equal(t, testPayload, string(msg))
+			cnt++
+		}
+
+		// Without the buffer some of the events would be dropped
+		assert.Less(t, cnt, 4)
+		wg.Done()
+	}()
+
+	time.Sleep(1 * time.Millisecond)
+	p.Publish(testTopic, []byte(testPayload))
+	p.Publish(testTopic, []byte(testPayload))
+	p.Publish(testTopic, []byte(testPayload))
+	p.Publish(testTopic, []byte(testPayload))
+	p.Finish(testTopic)
+
+	wg.Wait()
 }
