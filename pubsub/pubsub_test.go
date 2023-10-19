@@ -92,3 +92,36 @@ func TestFinishCleanup(t *testing.T) {
 	_, ok := p.topics[testTopic]
 	assert.False(t, ok)
 }
+
+func TestPubSubBufferedOK(t *testing.T) {
+	t.Parallel()
+
+	p := New[[]byte]()
+
+	testPayload := "payload"
+	testTopic := "topic1"
+
+	testCh := p.SubscribeBuffered(testTopic, 4)
+	closeCh := make(chan struct{})
+
+	go func() {
+		cnt := 0
+		for msg := range testCh {
+			assert.Equal(t, testPayload, string(msg))
+			cnt++
+		}
+
+		assert.Equal(t, 4, cnt)
+		close(closeCh)
+	}()
+
+	time.Sleep(1 * time.Millisecond)
+	// Not the best way to test, but without the buffer some of these would be dropped
+	p.Publish(testTopic, []byte(testPayload))
+	p.Publish(testTopic, []byte(testPayload))
+	p.Publish(testTopic, []byte(testPayload))
+	p.Publish(testTopic, []byte(testPayload))
+	p.Finish(testTopic)
+
+	<-closeCh
+}

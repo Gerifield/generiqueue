@@ -48,10 +48,15 @@ func (ps *PubSub[T]) Finish(topic string) {
 
 // Subscribe .
 func (ps *PubSub[T]) Subscribe(topic string) <-chan T {
+	return ps.SubscribeBuffered(topic, 0)
+}
+
+// SubscribeBuffered will use a buffered channel at the subscription
+func (ps *PubSub[T]) SubscribeBuffered(topic string, size int) <-chan T {
 	ps.incomingLock.Lock()
 	defer ps.incomingLock.Unlock()
 
-	retCh := make(chan T)
+	retCh := make(chan T, size)
 
 	_, ok := ps.topics[topic]
 	if ok {
